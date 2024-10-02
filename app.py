@@ -18,6 +18,8 @@ from dash import (
     dcc
 )
 
+# You can use a different llm/embedded model and see if it works better
+
 llm = Groq(model="llama3-70b-8192", api_key="YOUR_API_KEY")
 
 Settings.llm = llm
@@ -40,6 +42,8 @@ query_engine = index.as_query_engine()
 
 # print(response)
 
+
+# This is a pretty simple and janky Dash setup, works for now
 app = Dash()
 
 app.layout = html.Div(
