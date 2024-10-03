@@ -1,11 +1,13 @@
-import os.path
+import os
+from dotenv import load_dotenv
+
 from llama_index.core import (
     VectorStoreIndex,
-    SimpleDirectoryReader,
     StorageContext,
     Settings,
     load_index_from_storage
 )
+from llama_parse import LlamaParse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.groq import Groq
 
@@ -18,9 +20,11 @@ from dash import (
     dcc
 )
 
+load_dotenv()
+
 # You can use a different llm/embedded model and see if it works better
 
-llm = Groq(model="llama3-70b-8192", api_key="YOUR_API_KEY")
+llm = Groq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
 
 Settings.llm = llm
 Settings.embed_model = HuggingFaceEmbedding(
@@ -30,7 +34,7 @@ Settings.embed_model = HuggingFaceEmbedding(
 PERSIST_DIR = "./storage"
 
 if not os.path.exists(PERSIST_DIR):
-    documents = SimpleDirectoryReader("data").load_data()
+    documents = LlamaParse().load_data("./data/Registered-Cats-By-Breed.2022.pdf")
     index = VectorStoreIndex.from_documents(documents)
     index.storage_context.persist(persist_dir=PERSIST_DIR)
 else:
