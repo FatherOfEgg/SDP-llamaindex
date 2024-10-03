@@ -6,3 +6,6 @@ For example:
 GROQ_API_KEY=ABC
 LLAMA_CLOUD_API_KEY=llx-ABC
 ```
+
+[Groq API key](https://console.groq.com/keys)
+[LlamaParse API key](https://cloud.llamaindex.ai/)
