@@ -17,12 +17,11 @@ from dash import (
     Input,
     Output,
     callback,
-    dcc
+    dcc,
+    State
 )
 
 load_dotenv()
-
-# You can use a different llm/embedded model and see if it works better
 
 llm = Groq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
 
@@ -42,32 +41,33 @@ else:
     index = load_index_from_storage(storage_context)
 
 query_engine = index.as_query_engine()
-# response = query_engine.query("What are the top 5 popular breeds?")
 
-# print(response)
-
-
-# This is a pretty simple and janky Dash setup, works for now
 app = Dash()
 
-app.layout = html.Div(
-    [
-        dcc.Input(id="input1", type="text", placeholder="Enter prompt", debounce=True),
-        html.Div(id="output"),
-    ]
-)
+app.layout = html.Div([
+    dcc.Input(
+        id="prompt",
+        type="text",
+        placeholder="Enter prompt",
+        n_submit=0,
+    ),
+    
+    html.Div(id="response")
+])
 
 @callback(
-    Output("output", "children"),
-    Output("input1", "value"), # https://stackoverflow.com/q/72351437
-    Input("input1", "value"),
+    Output("response", "children"),
+    Output("prompt", "value"), # https://stackoverflow.com/q/72351437
+    Input("prompt", "n_submit"),
+    State("prompt", "value")
 )
-def update_output(input1):
-    response = ""
-    if input1:
-        response = query_engine.query(input1)
+def update_output(n_submit, value):
+    res = "Response: "
 
-    return f"Response: {response}", ""
+    if n_submit > 0 and value:
+        res += str(query_engine.query(value))
+
+    return res, ""
 
 if __name__ == '__main__':
     app.run(debug=True)
