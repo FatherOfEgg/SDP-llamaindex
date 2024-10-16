@@ -42,32 +42,57 @@ else:
 
 query_engine = index.as_query_engine()
 
+# Based on https://github.com/AdamSpannbauer/app_rasa_chat_bot
+
 app = Dash()
 
+conv_hist = []
+
 app.layout = html.Div([
-    dcc.Input(
-        id="prompt",
-        type="text",
-        placeholder="Enter prompt",
-        n_submit=0,
+    html.H3("BoneGPT", style={"text-align": "center"}),
+    html.Div([
+        html.Br(),
+        html.Div(id="conversation")],
+        id="chat",
+        style={"width": "400px", "margin": "0 auto"}
     ),
-    
-    html.Div(id="response")
+    html.Div([
+        html.Table([
+            html.Tr([
+                html.Td([dcc.Input(id="prompt", placeholder="Enter a prompt", type="text")],
+                        style={"valign": "middle"}),
+                html.Td([html.Button("Send", id="send_button", type="submit")],
+                        style={"valign": "middle"})
+                ])
+            ])],
+            id="user-input",
+            style={"width": "325px", "margin": "0 auto"}),
 ])
 
 @callback(
-    Output("response", "children"),
-    Output("prompt", "value"), # https://stackoverflow.com/q/72351437
-    Input("prompt", "n_submit"),
-    State("prompt", "value")
+    Output(component_id='conversation', component_property='children'),
+    Input(component_id='send_button', component_property='n_clicks'),
+    State(component_id='prompt', component_property='value')
 )
-def update_output(n_submit, value):
-    res = "Response: "
+def update_conversation(click, text):
+    global conv_hist
 
-    if n_submit > 0 and value:
-        res += str(query_engine.query(value))
+    if click and click > 0:
+        prompt = [html.H5(text, style={"text-align": "right"})]
+        response = [html.H5(str(query_engine.query(text)), style={"text-align": "left"})]
 
-    return res, ""
+        conv_hist += prompt + response
 
-if __name__ == '__main__':
+        return conv_hist
+    else:
+        return ""
+
+@callback(
+    Output(component_id='prompt', component_property='value'),
+    Input(component_id='conversation', component_property='children')
+)
+def clear_prompt(_):
+    return ""
+
+if __name__ == "__main__":
     app.run(debug=True)
