@@ -9,6 +9,7 @@ from llama_index.core import (
 )
 from llama_parse import LlamaParse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.llms.groq import Groq
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
@@ -32,6 +33,9 @@ Settings.llm = llm
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
 )
+# Settings.embed_model = HuggingFaceInferenceAPI(
+#     model_name="HuggingFaceH4/zephyr-7b-alpha", token=os.getenv("HUGGING_FACE_TOKEN")
+# )
 
 PERSIST_DIR = "./storage"
 
