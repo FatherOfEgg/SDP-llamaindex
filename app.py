@@ -30,11 +30,7 @@ llm = Groq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
 
 Settings.llm = llm
 Settings.embed_model = HuggingFaceEmbedding(
-    # model_name="BAAI/bge-small-en-v1.5"
-    # model_name="google/tapas-large-finetuned-wtq"
-    # model_name="deepset/bert-base-cased-squad2"
-    # model_name="google-bert/bert-large-uncased-whole-word-masking-finetuned-squad"
-    model_name="BAAI/bge-base-en-v1.5"
+    model_name="BAAI/bge-small-en-v1.5"
 )
 
 PERSIST_DIR = "./storage"
@@ -50,24 +46,28 @@ else:
     storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
     index = load_index_from_storage(storage_context)
 
-# query_engine = index.as_query_engine()
-
-chat_store = SimpleChatStore.from_persist_path(
-    persist_path="chat_store.json"
-)
+# chat_store = SimpleChatStore.from_persist_path(
+#     persist_path="chat_store.json"
+# )
 
 memory = ChatMemoryBuffer.from_defaults(
     token_limit=3000,
-    chat_store=chat_store,
+    # chat_store=chat_store,
     chat_store_key="user1",
 )
 
 chat_engine = index.as_chat_engine(
-    chat_mode=ChatMode.CONTEXT,
+    chat_mode=ChatMode.CONDENSE_PLUS_CONTEXT,
     memory=memory,
+    llm=llm,
+    system_prompt=(
+        "1. Always try to respond by outputting it in CSV format. Do not use quotes"
+        "2. Sort the data based on the prompt."
+        "3. You are allowed to say 1 sentence that pertains to the CSV and prompt."
+        "4. If you can't respond with CSV, respond with 1 to 2 short sentences."
+    ),
+    verbose=False
 )
-
-# chat_engine = index.as_chat_engine(memory=chat_memory)
 
 app = Dash()
 
@@ -106,7 +106,6 @@ def update_conversation(click, text):
 
     if click and click > 0:
         prompt = [html.H5(text, style={"text-align": "right"})]
-        # response = [html.H5(str(query_engine.query(text)), style={"text-align": "left"})]
         response = [html.H5(str(chat_engine.chat(text)), style={"text-align": "left"})]
 
         conv_hist += prompt + response
