@@ -1,4 +1,5 @@
 import os
+from io import StringIO
 from dotenv import load_dotenv
 
 from llama_index.core import (
@@ -9,7 +10,7 @@ from llama_index.core import (
 )
 from llama_parse import LlamaParse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
+# from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
 from llama_index.llms.groq import Groq
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.storage.chat_store import SimpleChatStore
@@ -25,6 +26,9 @@ from dash import (
     State
 )
 
+import plotly.graph_objects as go
+import pandas as pd
+
 load_dotenv()
 
 llm = Groq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
@@ -32,6 +36,7 @@ llm = Groq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
 Settings.llm = llm
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
+    # model_name="google/tapas-base-finetuned-wtq"
 )
 # Settings.embed_model = HuggingFaceInferenceAPI(
 #     model_name="HuggingFaceH4/zephyr-7b-alpha", token=os.getenv("HUGGING_FACE_TOKEN")
@@ -65,10 +70,22 @@ chat_engine = index.as_chat_engine(
     memory=memory,
     llm=llm,
     system_prompt=(
-        "1. Always try to respond by outputting it in CSV format. Do not use quotes"
-        "2. Sort the data based on the prompt."
-        "3. You are allowed to say 1 sentence that pertains to the CSV and prompt."
-        "4. If you can't respond with CSV, respond with 1 to 2 short sentences."
+        "Instructions:"
+        "1. Always double check your answer to make sure there wasn't a more correct answer."
+        " Use the following to double check your answer:\n"
+        "{context_str}"
+        "2. Always try to respond by outputting it in proper CSV format that only has 2 columns."
+        "3. Must Include labels."
+        "4. Don't preface the CSV with anything, only have the CSV."
+        "5. Delimit using commas. Do not use quotes."
+        " Each row in the CSV is separated by new lines only."
+        "6. Make sure the CSV only has 2 columns. Sort the data based on the prompt."
+        "7. If you want to say 1 sentence that pertains to the prompt, then"
+        " have the CSV first, and the sentence second. As well as"
+        " delimiting the CSV and the sentence with |D|."
+        "8. If you can't respond with CSV, respond with 1 to 2 short sentences."
+        "9. The CSV must contain only 2 columns, no more no less."
+        "10. Include labels for the CSV in relevant responses."
     ),
     verbose=False
 )
@@ -110,7 +127,35 @@ def update_conversation(click, text):
 
     if click and click > 0:
         prompt = [html.H5(text, style={"text-align": "right"})]
-        response = [html.H5(str(chat_engine.chat(text)), style={"text-align": "left"})]
+
+        res = str(chat_engine.chat(text)).split("|D|")
+
+        if len(res) == 1:
+            res.append("")
+
+        print(res[0])
+
+        data = StringIO(res[0])
+
+        df = pd.read_csv(data)
+
+        labels = res[0].splitlines()[0]
+        print(labels)
+        [x_col, y_col] = labels.split(",")
+
+        response = [
+            html.H5(res[1], style={"text-align": "left"}),
+            dcc.Graph(
+                figure=go.Figure(
+                    data=[
+                        go.Scatter(
+                            x=df[x_col],
+                            y=df[y_col]
+                        )
+                    ]
+                )
+            )
+        ]
 
         conv_hist += prompt + response
 
